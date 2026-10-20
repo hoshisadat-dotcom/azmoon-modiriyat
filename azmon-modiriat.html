@@ -1,0 +1,1132 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>سامانه آزمون آنلاین درس مدیریت آموزشگاهی</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Vazirmatn Persian Font -->
+    <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Vazirmatn', 'sans-serif'] }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { font-family: 'Vazirmatn', sans-serif; background-color: #f8fafc; }
+        .no-select { user-select: none; -webkit-user-select: none; }
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #f1f5f9; border-radius: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col justify-between selection:bg-indigo-500 selection:text-white">
+
+    <!-- Header -->
+    <header class="bg-slate-900 text-white border-b border-slate-800 sticky top-0 z-40 shadow-lg">
+        <div class="max-w-6xl mx-auto px-4 sm:px-6 py-3 flex justify-between items-center">
+            <div class="flex items-center gap-3">
+                <div class="bg-gradient-to-tr from-indigo-600 to-violet-500 text-white p-2.5 rounded-xl shadow-md">
+                    <i class="fa-solid fa-sitemap text-xl"></i>
+                </div>
+                <div>
+                    <h1 class="font-bold text-base sm:text-lg leading-tight">سامانه آزمون آنلاین درس مدیریت آموزشگاهی</h1>
+                    <p class="text-xs text-slate-400">ارزشیابی تخصصی رهبری و مدیریت سازمان‌های آموزشی</p>
+                </div>
+            </div>
+            <button onclick="toggleAdminModal()" class="text-xs bg-slate-800 hover:bg-slate-700 text-indigo-300 hover:text-white px-3.5 py-2 rounded-xl transition-all duration-200 flex items-center gap-2 border border-slate-700 shadow-sm">
+                <i class="fa-solid fa-user-shield text-indigo-400"></i>
+                <span>پورتال استاد و بانک سوالات</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="max-w-4xl mx-auto px-4 sm:px-6 py-8 flex-grow w-full">
+        
+        <!-- Step 1: Student Login -->
+        <div id="step-login" class="bg-white rounded-2xl p-6 md:p-8 shadow-xl border border-slate-200/80 transition-all">
+            <div class="text-center mb-6">
+                <span class="bg-indigo-50 text-indigo-700 text-xs font-bold px-3 py-1 rounded-full border border-indigo-200">
+                    <i class="fa-solid fa-user-graduate ml-1"></i> پورتال شرکت در آزمون
+                </span>
+                <h2 class="text-xl sm:text-2xl font-extrabold text-slate-900 mt-3">مشخصات فراگیر و انتخاب مبحث آزمون</h2>
+                <p class="text-xs sm:text-sm text-slate-500 mt-1">لطفاً اطلاعات زیر را جهت احراز هویت و شروع آزمون مدیریت آموزشگاهی وارد نمایید.</p>
+            </div>
+
+            <form onsubmit="handleStartExam(event)" class="space-y-4 max-w-md mx-auto">
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1.5">نام و نام خانوادگی کامل <span class="text-rose-500">*</span></label>
+                    <input type="text" id="std-name" required placeholder="مثال: علی محمدی" class="w-full px-4 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm outline-none transition">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1.5">شماره دانشجویی / کد ملی <span class="text-rose-500">*</span></label>
+                    <input type="text" id="std-id" required placeholder="مثال: 40210012 یا کد ملی" class="w-full px-4 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm outline-none transition">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1.5">انتخاب مبحث / فصل آزمون <span class="text-rose-500">*</span></label>
+                    <select id="exam-select" required class="w-full px-4 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm outline-none bg-white font-medium text-slate-700">
+                        <!-- Populated dynamically via JS -->
+                    </select>
+                </div>
+
+                <div class="p-4 bg-amber-50/80 border border-amber-200 rounded-xl text-xs text-amber-900 space-y-1.5 mt-4">
+                    <p class="font-bold flex items-center gap-1.5"><i class="fa-solid fa-triangle-exclamation text-amber-600"></i> راهنمای شرکت در آزمون:</p>
+                    <ul class="list-disc list-inside space-y-1 text-amber-800">
+                        <li>هر دانشجو با شماره دانشجویی/کد ملی خود تنها یک‌بار مجاز به شرکت در هر مبحث است.</li>
+                        <li>امکان بازگشت به سوالات قبلی وجود ندارد.</li>
+                        <li>پس از ثبت نهایی، پاسخ‌نامه شما مستقیماً در دیتابیس آنلاین ذخیره می‌شود.</li>
+                    </ul>
+                </div>
+
+                <button type="submit" id="start-btn" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3.5 rounded-xl shadow-lg hover:shadow-indigo-500/25 transition duration-200 text-sm mt-4 flex justify-center items-center gap-2">
+                    <span>شروع آزمون مدیریت</span>
+                    <i class="fa-solid fa-arrow-left"></i>
+                </button>
+            </form>
+        </div>
+
+        <!-- Step 2: Exam Questions Container -->
+        <div id="step-quiz" class="hidden space-y-6">
+            <div class="bg-slate-900 text-white p-4 sm:p-5 rounded-2xl border border-slate-800 shadow-md flex flex-wrap justify-between items-center gap-4">
+                <div>
+                    <span id="quiz-course-tag" class="bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 text-xs font-bold px-3 py-1 rounded-lg">مبحث انتخاب‌شده</span>
+                    <h3 id="quiz-student-title" class="text-xs sm:text-sm font-semibold text-slate-300 mt-2">دانشجو: -</h3>
+                </div>
+                <div class="flex items-center gap-3">
+                    <div class="text-center bg-slate-800 px-3 py-1.5 rounded-xl border border-slate-700">
+                        <span class="text-[10px] text-slate-400 block font-medium">شماره سوال</span>
+                        <span id="current-q-num" class="font-black text-indigo-400 text-xs sm:text-sm">۱ / ۱۰</span>
+                    </div>
+                    <div class="text-center bg-rose-500/20 border border-rose-500/40 px-3.5 py-1.5 rounded-xl">
+                        <span class="text-[10px] text-rose-300 block font-medium">زمان باقی‌مانده</span>
+                        <span id="timer-display" class="font-black text-white font-mono text-sm sm:text-base dir-ltr">00:45</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-2xl p-6 md:p-8 shadow-xl border border-slate-200/80 no-select">
+                <div class="flex justify-between items-center mb-4">
+                    <span id="bloom-tag" class="bg-amber-50 text-amber-800 text-xs font-bold px-3 py-1 rounded-lg border border-amber-200/80">
+                        سطح شناختی بلوم: -
+                    </span>
+                </div>
+                
+                <p id="question-text" class="text-slate-900 font-bold text-base md:text-lg leading-relaxed mb-6">
+                    متن سوال در حال بارگذاری...
+                </p>
+
+                <div id="options-container" class="space-y-3"></div>
+
+                <div class="mt-8 flex justify-end pt-4 border-t border-slate-100">
+                    <button id="next-q-btn" onclick="submitAnswerAndNext()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-6 py-3 rounded-xl text-xs sm:text-sm transition shadow-md hover:shadow-indigo-500/20 flex items-center gap-2">
+                        <span>ثبت و رفتن به سوال بعدی</span>
+                        <i class="fa-solid fa-chevron-left text-xs"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Step 3: Result Summary -->
+        <div id="step-result" class="hidden bg-white rounded-2xl p-6 md:p-8 shadow-xl border border-slate-200 text-center space-y-6">
+            <div class="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center text-3xl mx-auto shadow-inner">
+                <i class="fa-solid fa-award"></i>
+            </div>
+            <div>
+                <h2 class="text-2xl font-black text-slate-900">آزمون مدیریت با موفقیت به پایان رسید</h2>
+                <p class="text-xs sm:text-sm text-slate-500 mt-1">پاسخ‌های شما به‌صورت آنلاین در دیتابیس ثبت گردید.</p>
+            </div>
+
+            <div class="bg-slate-50 border border-slate-200/80 rounded-2xl p-6 max-w-sm mx-auto shadow-sm">
+                <span class="text-xs font-bold text-slate-400 block mb-1">نمره نهایی شما</span>
+                <div id="final-score" class="text-4xl font-black text-indigo-600 my-2">۰٪</div>
+                <p id="final-details" class="text-xs font-semibold text-slate-600">تعداد پاسخ صحیح: ۰ از ۰</p>
+            </div>
+
+            <button onclick="window.location.reload()" class="bg-slate-900 hover:bg-slate-800 text-white text-xs sm:text-sm font-bold px-6 py-3 rounded-xl shadow-md transition">
+                <i class="fa-solid fa-rotate-right ml-1.5"></i> بازگشت به صفحه اصلی
+            </button>
+        </div>
+
+    </main>
+
+    <!-- Admin Modal -->
+    <div id="admin-modal" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div class="bg-white w-full max-w-3xl rounded-2xl p-6 shadow-2xl relative max-h-[92vh] flex flex-col overflow-hidden border border-slate-200">
+            
+            <div class="flex items-center justify-between pb-4 border-b border-slate-200">
+                <div class="flex items-center gap-2">
+                    <div class="w-8 h-8 rounded-lg bg-indigo-100 text-indigo-600 flex items-center justify-center font-bold">
+                        <i class="fa-solid fa-user-shield"></i>
+                    </div>
+                    <h3 class="font-extrabold text-base text-slate-900">پنل مدیریت استاد (مدیریت آموزشگاهی)</h3>
+                </div>
+                <button onclick="toggleAdminModal()" class="w-8 h-8 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-800 flex items-center justify-center transition">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <div id="admin-login-form" class="py-8 space-y-4 max-w-sm mx-auto w-full text-center">
+                <p class="text-xs text-slate-500">جهت مدیریت بانک سوالات و مشاهده نتایج، رمز عبور استاد را وارد کنید.</p>
+                <div>
+                    <input type="password" id="admin-pass" placeholder="رمز عبور استاد" class="w-full text-center px-4 py-3 rounded-xl border border-slate-300 text-sm font-bold focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none">
+                </div>
+                <button onclick="verifyAdminPass()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-xl text-sm transition shadow-md">
+                    ورود به پنل
+                </button>
+            </div>
+
+            <!-- Scrollable Content Body after Login -->
+            <div id="admin-panel" class="hidden overflow-y-auto custom-scrollbar pt-4 space-y-6 flex-grow">
+                
+                <!-- Tab Switching in Admin Panel -->
+                <div class="flex border-b border-slate-200">
+                    <button id="admin-tab-btn-questions" onclick="switchAdminSubTab('questions')" class="px-4 py-2 text-xs font-bold border-b-2 border-indigo-600 text-indigo-600">
+                        <i class="fa-solid fa-file-circle-plus ml-1"></i> مدیریت و بارگذاری سوالات جدید
+                    </button>
+                    <button id="admin-tab-btn-results" onclick="switchAdminSubTab('results')" class="px-4 py-2 text-xs font-bold border-b-2 border-transparent text-slate-500 hover:text-slate-800">
+                        <i class="fa-solid fa-chart-line ml-1"></i> گزارش پاسخ‌نامه‌ها و نمرات
+                    </button>
+                </div>
+
+                <!-- SUB TAB 1: ADD QUESTION BANK -->
+                <div id="admin-subtab-questions" class="space-y-4">
+                    <div class="bg-indigo-50/70 border border-indigo-200 p-4 rounded-xl text-xs text-indigo-900 space-y-1">
+                        <p class="font-bold flex items-center gap-1.5"><i class="fa-solid fa-cloud-arrow-up text-indigo-600"></i> راهنمای افزودن فصل/مبحث جدید:</p>
+                        <p class="text-slate-600 leading-relaxed">کد شناسه فصل (مثلاً <code class="font-mono bg-white px-1.5 py-0.5 rounded border border-indigo-200">modiriyat-ch4</code>)، عنوان مبحث و کد JSON ۱۰ سوالی ارائه شده توسط دستیار را در کادرهای زیر کپی کرده و دکمه «ثبت در دیتابیس ابری» را بزنید تا مستقیماً برای دانشجویان فعال شود.</p>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 mb-1">کد شناسه مبحث (انگلیسی، بدون فاصله)</label>
+                            <input type="text" id="new-course-key" placeholder="مثال: modiriyat-ch4" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-mono focus:ring-2 focus:ring-indigo-500 outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 mb-1">عنوان فارسی مبحث (نمایش در منو)</label>
+                            <input type="text" id="new-course-title" placeholder="مثال: مدیریت آموزشگاهی - جلسه چهارم" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-indigo-500 outline-none">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">کد JSON سوالات (فرمت استاندارد ۱۰ سوالی)</label>
+                        <textarea id="new-questions-json" rows="8" placeholder="کد JSON سوالات را اینجا Paste کنید..." class="w-full p-3 rounded-xl border border-slate-300 font-mono text-xs focus:ring-2 focus:ring-indigo-500 outline-none dir-ltr text-left"></textarea>
+                    </div>
+
+                    <button onclick="saveNewQuestionBankToFirebase()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 rounded-xl text-xs transition shadow-md flex justify-center items-center gap-2">
+                        <i class="fa-solid fa-cloud-arrow-up"></i>
+                        ثبت و انتشار مستقیم مبحث در پایگاه‌داده آنلاین
+                    </button>
+                </div>
+
+                <!-- SUB TAB 2: RESULTS & SETTINGS -->
+                <div id="admin-subtab-results" class="hidden space-y-4">
+                    <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-2">
+                        <label class="block text-xs font-bold text-slate-700">تنظیم زمان پاسخ‌گویی به هر سوال (ثانیه)</label>
+                        <div class="flex gap-2">
+                            <input type="number" id="q-timer-set" value="45" min="10" max="300" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-bold outline-none">
+                            <button onclick="saveTimerSetting()" class="bg-slate-900 hover:bg-slate-800 text-white text-xs px-4 py-2 rounded-xl font-bold transition shrink-0">ذخیره زمان</button>
+                        </div>
+                    </div>
+
+                    <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-3">
+                        <div class="flex justify-between items-center">
+                            <h4 class="font-bold text-xs text-slate-800">لیست آنلاین پاسخ‌نامه‌های دریافتی درس مدیریت</h4>
+                            <span id="total-students-count" class="text-xs bg-indigo-100 text-indigo-800 px-2.5 py-1 rounded-lg font-bold">۰ نفر</span>
+                        </div>
+
+                        <div class="overflow-x-auto max-h-60 border border-slate-200 rounded-xl bg-white custom-scrollbar">
+                            <table class="w-full text-right text-xs">
+                                <thead class="bg-slate-100 border-b text-slate-700 font-bold sticky top-0">
+                                    <tr>
+                                        <th class="p-2.5">نام دانشجو</th>
+                                        <th class="p-2.5">شماره دانشجویی</th>
+                                        <th class="p-2.5">مبحث</th>
+                                        <th class="p-2.5">نمره (درصد)</th>
+                                        <th class="p-2.5">تاریخ ثبت</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="admin-submissions-tbody" class="divide-y divide-slate-100">
+                                    <tr><td colspan="5" class="p-4 text-center text-slate-400">در حال دریافت داده‌ها...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <button onclick="exportCSV()" class="w-full bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold py-3 rounded-xl flex justify-center items-center gap-1.5 transition shadow-sm">
+                            <i class="fa-solid fa-file-excel text-emerald-400"></i>
+                            دانلود خروجی اکسل (CSV)
+                        </button>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <footer class="bg-white border-t border-slate-200 py-4 text-center text-xs text-slate-500 mt-8">
+        سامانه آنلاین ارزشیابی درس مدیریت آموزشگاهی - طراحی مبتنی بر تکسونومی بلوم و دیتابیس ابری
+    </footer>
+
+    <script>
+        // Firebase Configuration (Realtime Database Connection)
+        const firebaseConfig = {
+            databaseURL: "https://azmoon-sanjesh-default-rtdb.firebaseio.com/"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
+
+        // STRICTLY ONLY THE 3 CHAPTERS FOR EDUCATIONAL MANAGEMENT
+        let activeQuestionBank = {
+            "modiriyat-ch1": [
+                {
+                    id: 1,
+                    type: "mcq",
+                    bloom: "تحلیل",
+                    question: "مدیر مدرسه‌ای برای حل مشکل افت تحصیلی پایه دوازدهم، از یک سو به تحلیل آماری نتایج آزمون‌های کشوری سال‌های گذشته پرداخته و از سوی دیگر با برگزاری جلسات همدلانه فردی، انگیزه‌های درونی معلمان را بازسازی می‌کند. اقدامات این مدیر به ترتیب بیانگر کدام ابعاد مدیریت است؟",
+                    options: [
+                        "جنبه علمی مبتنی بر الگوی سنجش - جنبه هنری مبتنی بر روابط انسانی و هوش عاطفی",
+                        "مدیریت اداری مبتنی بر آئین‌نامه‌ها - رهبری آموزشی مبتنی بر حفظ وضع موجود کادر",
+                        "کارکرد سازماندهی ساختار اداری - کارکرد هماهنگی بر اساس سلسله‌مراتب رسمی",
+                        "جنبه هنری مبتنی بر درک موقعیت - جنبه علمی مبتنی بر هدایت و نظارت انضباطی"
+                    ],
+                    correct: 0
+                },
+                {
+                    id: 2,
+                    type: "mcq",
+                    bloom: "ارزیابی",
+                    question: "اگر مدیر یک مجموعه آموزشی تصمیم بگیرد تمام شاخص‌های ارزیابی کیفیت عملکرد معلمان را صرفاً بر اساس میزان قبولی خردادماه و نمرات عددی دانش‌آموزان تنظیم کند، نقد روان‌سنجی شما بر این تصمیم بر پایه کدام ویژگی خاص سازمان‌های آموزشی استوار است؟",
+                    options: [
+                        "تکثر اهداف سازمانی و اولویت مطلق دادن به رشد بدنی و اخلاقی در برابر ابعاد علمی",
+                        "دیربازده بودن پیامدها و دشواری سنجش رشد کیفی انسان با شاخص‌های ساده عددی",
+                        "وابستگی شدید به فرهنگ جامعه و عدم امکان مداخله معلمان در تغییر فرآیندهای یادگیری",
+                        "غیرقابل پیش‌بینی بودن رفتار ورودی‌ها و عدم نیاز به ارزیابی خروجی‌های انسانی در مدرسه"
+                    ],
+                    correct: 1
+                },
+                {
+                    id: 3,
+                    type: "mcq",
+                    bloom: "تحلیل",
+                    question: "در یک موسسه آموزشی، مدیر با تعارض میان تصمیم‌گیری برای تخصیص بودجه به تجهیز آزمایشگاه علوم (هدف علمی) یا تقویت گروه‌های سرود و ورزش (هدف پرورشی-اجتماعی) مواجه شده است. این چالش مستقیماً ناشی از کدام ویژگی ساختاری سازمان‌های آموزشی است؟",
+                    options: [
+                        "حساسیت‌های شدید اجتماعی-فرهنگی و فشار مستقیم نهادهای بیرون از مدرسه",
+                        "دیربازده بودن پیامدهای تربیتی و مشخص نبودن سود مالی حاصل از فعالیتهای پرورشی",
+                        "تکثر و اهداف متعدد سازمانی که گاه هماهنگ کردن آن‌ها نیازمند تصمیم‌گیری پیچیده است",
+                        "انسانی بودن ورودی‌ها و خروجی‌ها و عدم امکان دستکاری در برنامه‌های مصوب درسی"
+                    ],
+                    correct: 2
+                },
+                {
+                    id: 4,
+                    type: "mcq",
+                    bloom: "کاربستن",
+                    question: "مدیری در آغاز سال تحصیلی، ابتدا شرح وظایف کادر اداری را ابلاغ نموده، سپس جلسات شورای معلمان را برای تقسیم پایه‌های تحصیلی تشکیل داده و در نهایت کمیته‌های تخصصی اولیا را سازمان داده است. اقدامات وی مصداق کدام کارکرد پنج‌گانه مدیریت است؟",
+                    options: [
+                        "برنامه ریزی در راستای تعیین اهداف بلندمدت و پیش‌بینی نیازهای مالی",
+                        "هدایت و رهبری در جهت نفوذ بر رفتار معلمان و حل تعارضات اداری",
+                        "سازماندهی شامل تقسیم کار، تعیین مسئولیت‌ها و برقراری روابط ساختاری",
+                        "هماهنگی و ارتباطات به منظور انسجام‌بخشی به فعالیت‌های محلی و منطقه‌ای"
+                    ],
+                    correct: 2
+                },
+                {
+                    id: 5,
+                    type: "mcq",
+                    bloom: "تحلیل",
+                    question: "تفاوت کارکرد «مدیریت اداری» با «رهبری آموزشی» در نحوه برخورد با معلمان و کادر آموزشی، در کدام عبارت به درستی بیان شده است؟",
+                    options: [
+                        "مدیر اداری بر راهنمایی و توانمندسازی تمرکز دارد؛ رهبری آموزشی بر حضور و غیاب رسمی",
+                        "مدیر اداری بر نظارت اداری و کنترلی تمرکز دارد؛ رهبری آموزشی بر توانمندسازی و کارورزی",
+                        "مدیر اداری جو انگیزش‌بخش ایجاد می‌کند؛ رهبری آموزشی دیسیپلین خشک را حاکم می‌سازد",
+                        "مدیر اداری بر نوآوری در تدریس تمرکز دارد؛ رهبری آموزشی بر اجرای دقیق بخشنامه‌ها"
+                    ],
+                    correct: 1
+                },
+                {
+                    id: 6,
+                    type: "mcq",
+                    bloom: "کاربستن",
+                    question: "مدیر مدرسه‌ای به جای سرکشی ناگهانی برای مچ‌گیری از معلمان، در کلاس درس حاضر شده و پس از اتمام تدریس، در جلسه‌ای خصوصی نکات اصلاحی را برای ارتقای روش تدریس ارائه می‌دهد. این اقدام مصداق کدام مفهوم است؟",
+                    options: [
+                        "نظارت آموزشی (Instructional Supervision) در جهت توانمندسازی معلم",
+                        "سازماندهی اداری (Organizing) در راستای تعیین شرح وظایف کادر",
+                        "ارزشیابی برنامه‌ای (Program Evaluation) جهت صدور حکم ارتقای شغلی",
+                        "هدایت اداری (Administrative Leading) به منظور اعمال قوانین انضباطی"
+                    ],
+                    correct: 0
+                },
+                {
+                    id: 7,
+                    type: "mcq",
+                    bloom: "تحلیل",
+                    question: "اقدام مدیری که جلسات نقد کتاب‌های درسی جدیدالتالیف را با حضور معلمان برگزار کرده و آن‌ها را به استفاده از تخته‌های هوشمند و روش‌های فعال تدریس تشویق می‌کند، در کدام بعد از ابعاد شش‌گانه مدیریت جای دارد؟",
+                    options: [
+                        "مدیریت امور دانش‌آموزی و خدمات پرورشی در راستای تقویت هدایت تحصیلی",
+                        "مدیریت برنامه درسی و امور آموزشی به عنوان هسته اصلی و فلسفه وجودی مدرسه",
+                        "مدیریت منابع انسانی و امور معلمان در جهت حل تعارضات ساختاری کادر",
+                        "مدیریت ارتباط با جامعه محلی به منظور جلب مشارکت‌های فکری و مهارتی"
+                    ],
+                    correct: 1
+                },
+                {
+                    id: 8,
+                    type: "mcq",
+                    bloom: "ارزیابی",
+                    question: "اگر یک مدیر آموزشگاه تمام وقت خود را صرف بهسازی فضای حیاط، نقاشی کلاس‌ها و جذب کمک‌های مالی کند، اما نسبت به تحلیل نتایج امتحانات و کیفیت تدریس معلمان بی‌تفاوت باشد، عملکرد وی را چگونه ارزیابی می‌کنید؟",
+                    options: [
+                        "مطلوب است؛ زیرا بعد فیزیکی و مالی زیرساخت اصلی بوده و خودبه‌خود کیفیت علمی را ارتقا می‌دهد",
+                        "نامطلوب است؛ زیرا میان ابعاد ۶گانه تعادل ایجاد نکرده و از بعد هسته‌ای یعنی برنامه درسی غافل شده است",
+                        "مطلوب است؛ زیرا جذب مشارکت‌های مالی و ساختمانی مهم‌ترین وظیفه یک رهبر آموزشی است",
+                        "نامطلوب است؛ زیرا مدیر نباید در امور اداری و تجهیزاتی مدرسه مداخله مستقیم داشته باشد"
+                    ],
+                    correct: 1
+                },
+                {
+                    id: 9,
+                    type: "mcq",
+                    bloom: "فهمیدن",
+                    question: "کدام عبارت بیانگر نقش «مدیریت منابع انسانی و توانمندسازی کادر» در ابعاد شش‌گانه مدیریت آموزشگاه است؟",
+                    options: [
+                        "صدور بخشنامه‌های انضباطی یک‌طرفه و کنترل فیزیکی حضور معلمان در کلاس",
+                        "برگزاری کارگاه‌های دانش‌افزایی، قدردانی از زحمات و ایجاد انگیزه درونی",
+                        "تنظیم دفترهای مالی طبق مقررات و مدیریت شفاف هزینه‌های سرانه آموزشی",
+                        "مناسب‌سازی نور و تهویه کلاس‌ها به همراه اجرای ایمنی پدافند غیرعامل"
+                    ],
+                    correct: 1
+                },
+                {
+                    id: 10,
+                    type: "mcq",
+                    bloom: "کاربستن",
+                    question: "مدیری که برای اجرای پروژه‌های علمی دانش‌آموزان، از ظرفیت کتابخانه عمومی محله و پژوهش‌سرای منطقه استفاده کرده و اولیا را در این فرایند درگیر می‌کند، کدام بعد مدیریتی را فعال ساخته است؟",
+                    options: [
+                        "مدیریت مالی، اداری و پشتیبانی از طریق تنظیم حساب‌ها",
+                        "مدیریت ارتباط با خانواده و جامعه محلی به عنوان زیست‌بوم تربیتی",
+                        "مدیریت فضا و تجهیزات ایمنی در راستای بهسازی آزمایشگاه",
+                        "مدیریت امور دانش‌آموزی صرفاً از طریق راه اندازی تشکل‌ها"
+                    ],
+                    correct: 1
+                }
+            ],
+            "modiriyat-ch2": [
+                {
+                    id: 1,
+                    type: "mcq",
+                    bloom: "تحلیل",
+                    question: "الزام معلمان به تدوین «طرح درس‌های قالبی و یکنواخت زمان‌بندی‌شده» و تقسیم کلاس‌ها به «زنگ‌های ۴۵ یا ۹۰ دقیقه ای ثابت»، به ترتیب بازتاب کدام نظریه‌های مکتب کلاسیک در مدرسه است؟",
+                    options: [
+                        "مدیریت اداری فایول - نظریه دیوان‌سالاری ماکس وبر",
+                        "مدیریت علمی تیلور - مدیریت علمی تیلور",
+                        "نظریه بوروکراسی وبر - مدیریت اداری هنری فایول",
+                        "مدیریت علمی تیلور - نظریه روابط انسانی التون مايو"
+                    ],
+                    correct: 1
+                },
+                {
+                    id: 2,
+                    type: "mcq",
+                    bloom: "فهمیدن",
+                    question: "معلمی که در صورت بروز مشکل انضباطی یا اداری در مدرسه، فقط و فقط گزارش خود را به «معاون مربوطه» داده و از مراجعه مستقیم به اداره آموزش و پرورش پرهیز می‌کند، کدام اصول فایول را رعایت کرده است؟",
+                    options: [
+                        "اصول تقسیم کار و تمرکز مطلق بر استانداردسازی زمان",
+                        "اصول وحدت فرماندهی و رعایت سلسله‌مراتب (Scalar Chain)",
+                        "اصول انضباط خشک و برخورد غیرشخصی بر اساس شایستگی",
+                        "اصول انتخاب علمی کارکنان و ایجاد انگیزه مادی"
+                    ],
+                    correct: 1
+                },
+                {
+                    id: 3,
+                    type: "mcq",
+                    bloom: "ارزیابی",
+                    question: "اگر مدیری با اجرای بسیار سخت‌گیرانه قوانین آئین‌نامه‌ای، حاکمیت مطلق بخشنامه‌ها و ثبت دقیق تمامی سوابق، مانع هرگونه نوآوری و خلاقیت معلمان شود، کدام آسیب مکتب کلاسیک در مدرسه رخ داده است؟",
+                    options: [
+                        "نگاه سیستمی بسته به مدرسه و عدم توجه به ورودی‌های انسانی",
+                        "غلبه کاغذبازی، نگاه ابزاری به انسان و سرکوب خلاقیت در قالب‌های خشک",
+                        "افراط در روابط انسانی و آسیب دیدن دیسیپلین و استانداردهای علمی",
+                        "عدم استفاده از تفویض اختیار در موقعیت‌های بحرانی و غیرمترقبه"
+                    ],
+                    correct: 1
+                },
+                {
+                    id: 4,
+                    type: "mcq",
+                    bloom: "تحلیل",
+                    question: "کشف اصلی پژوهشگران در «مطالعات هاتورن» (التون مایو) که شالوده مکتب روابط انسانی را شکل داد، چه بود؟",
+                    options: [
+                        "میزان روشنایی و متغیرهای فیزیکی محیط کار، علت اصلی افزایش بهره‌وری کارکنان است",
+                        "افزایش دستمزد و پاداش‌های مالی مستقیم، تنها عامل انگیزش در سازمان‌های مدرن است",
+                        "احساس توجه، احترام، روحیه گروهی و عوامل روانی علت اصلی افزایش بهره‌وری است",
+                        "استانداردسازی روش انجام کار، میزان خستگی و استرس شغلی معلمان را کاهش می‌دهد"
+                    ],
+                    correct: 2
+                },
+                {
+                    id: 5,
+                    type: "mcq",
+                    bloom: "کاربستن",
+                    question: "مدیری به جای ابلاغ یک‌طرفه بخشنامه‌ها، در شورای معلمان زمینه‌ای فراهم می‌سازد تا معلمان در تصمیم‌گیری‌های آموزشی مشارکت کنند و گروه دوستی معلمان را حمایت می‌کند. اقدام وی بازتاب کدام مکتب است؟",
+                    options: [
+                        "مکتب کلاسیک بر پایه مدیریت اداری فایول",
+                        "مکتب روابط انسانی و مدیریت مشارکتی",
+                        "دیدگاه سیستمی بسته در محیط‌های آموزشی",
+                        "مدیریت علمی تیلور بر اساس کارسنجی"
+                    ],
+                    correct: 1
+                },
+                {
+                    id: 6,
+                    type: "mcq",
+                    bloom: "ارزیابی",
+                    question: "اگر صمیمیت بیش از حد مدیر با معلمان باعث شود که وی از ارزیابی واقع‌بینانه کیفیت تدریس معلمان خودداری کرده و سطح دیسیپلین علمی مدرسه افت کند، کدام نقد بر عملکرد وی وارد است؟",
+                    options: [
+                        "افتادن در دام آسیب‌های افراط در مکتب روابط انسانی و تعارفات اداری",
+                        "اجرای بی‌چون‌وچرای اصول دیوان‌سالاری و بوروکراسی خشک ماکس وبر",
+                        "عدم رعایت اصل وحدت فرماندهی و سلسله‌مراتب در مدیریت آموزشگاه",
+                        "نگاه ابزاری و چرخ‌دنده‌ای به معلمان بر اساس نظریات مدیریت علمی"
+                    ],
+                    correct: 0
+                },
+                {
+                    id: 7,
+                    type: "mcq",
+                    bloom: "تحلیل",
+                    question: "در الگوی سیستمی مدرسه، نظرات اولیا، نتایج ارزیابی‌های استانی و میزان موفقیت فارغ‌التحصیلان در دانشگاه‌ها، در کدام بخش از اجزای سیستم قرار می‌گیرند؟",
+                    options: [
+                        "ورودی‌ها (Inputs) جهت تعیین بودجه",
+                        "فرآیند تبدیل (Transformation) جهت تدریس",
+                        "خروجی‌ها (Outputs) به عنوان محصول نهایی",
+                        "بازخورد (Feedback) جهت اصلاح ورودی‌ها و فرآیندها"
+                    ],
+                    correct: 3
+                },
+                {
+                    id: 8,
+                    type: "mcq",
+                    bloom: "کاربستن",
+                    question: "مدیر مدرسه‌ای هنگام بروز حادثه آتش‌سوزی یا بحران‌های شدید انضباطی، سبک مدیریتی خود را به «قاطع و آمرانه» تغییر داده و دستورات مستقیم صادر می‌کند. سبک وی بر اساس کدام نظریه توجیه می‌شود؟",
+                    options: [
+                        "مکتب روابط انسانی؛ زیرا امنیت عاطفی دانش‌آموزان را تامین می‌کند",
+                        "نظریه اقتضایی؛ زیرا سبک مدیریت باید متناسب با موقعیت بحران باشد",
+                        "نظریه بوروکراسی کامل؛ زیرا قوانین کتبی را بدون انعطاف اجرا کرده است",
+                        "نگاه سیستمی بسته؛ زیرا ارتباط مدرسه با محیط بیرون را قطعی می‌سازد"
+                    ],
+                    correct: 1
+                },
+                {
+                    id: 9,
+                    type: "mcq",
+                    bloom: "تحلیل",
+                    question: "برای کار با «معلمان باسابقه، خلاق و متخصص»، مناسب‌ترین سبک مدیریتی بر اساس نظریه اقتضایی و نحوه رفتار مدیر کدام است؟",
+                    options: [
+                        "سبک هدایتی؛ ارائه راهنمایی‌های مشخص و کنترل گام‌به‌گام تدریس",
+                        "سبک آمرانه؛ صدور دستورات شفاف و کنترل مستقیم حضوروغیاب",
+                        "سبک تفویضی و مشارکتی؛ اعطای آزادی عمل، مشورت و تسهیل‌گری",
+                        "سبک بوروکراتیک؛ الزام به رعایت دقیق آئین‌نامه‌های اداری"
+                    ],
+                    correct: 2
+                },
+                {
+                    id: 10,
+                    type: "mcq",
+                    bloom: "ارزیابی",
+                    question: "ترکیب و جمع‌بندی سه مکتب مدیریتی در یک مدرسه پویا چگونه است؟",
+                    options: [
+                        "حفظ ساختار و نظم کلاسیک، جاری ساختن روابط انسانی و اتخاذ سبک اقتضایی با نگاه سیستمی",
+                        "جایگزینی کامل مکتب روابط انسانی به جای مکتب کلاسیک و نادیده گرفتن قوانین اداری",
+                        "اجرای مطلق اصول مدیریت علمی تیلور در کلاس و استفاده از بوروکراسی در روابط اولیا",
+                        "حذف نگاه سیستمی و تمرکز اختصاصی بر ایجاد جو صمیمی بدون ارزیابی خروجی‌ها"
+                    ],
+                    correct: 0
+                }
+            ],
+            "modiriyat-ch3": [
+                {
+                    id: 1,
+                    type: "mcq",
+                    bloom: "تحلیل",
+                    question: "مدیری در مواجهه با افت تحصیلی شدید دانش‌آموزان در امتحانات نهایی، به جای ثبت منفی در پرونده معلمان یا سرزنش دانش‌آموزان، به تحلیل داده‌های آماری امتحانات پرداخته و با همراهی معلمان، برنامه‌های مکمل آموزشی و نظارت بالینی را طراحی می‌کند. رفتار این مدیر نشان‌دهنده کدام رویکرد سازمانی است؟",
+                    options: [
+                        "مدیریت اداری مبتنی بر حفظ نظم سخت‌افزاری و کنترلی",
+                        "رهبری آموزشی مبتنی بر تحلیل داده‌ها و رشد یادگیری",
+                        "مدیریت بوروکراتیک مبتنی بر اجرای یک‌طرفه بخشنامه‌ها",
+                        "رهبری تبادلی مبتنی بر پاداش و مجازات عملکرد کادر"
+                    ],
+                    correct: 1
+                },
+                {
+                    id: 2,
+                    type: "mcq",
+                    bloom: "ارزیابی",
+                    question: "اگر مدیر مدرسه‌ای هدف سالانه مجموعه خود را به صورت «ارتقای کیفیت اخلاقی و علمی دانش‌آموزان در طول سال تحصیلی» تدوین کند، نقد روان‌سنجی شما بر این هدف‌گذاری بر پایه الگوی هالینجر و مورفی چیست؟",
+                    options: [
+                        "هدف‌گذاری صحیح است؛ زیرا اهداف رسالت مدرسه باید کلی، کیفی و بدون محدودیت زمانی باشند",
+                        "هدف‌گذاری نادرست است؛ زیرا اهداف باید مشخص، قابل سنجش و دارای زمان‌بندی شفاف (SMART) باشند",
+                        "هدف‌گذاری صحیح است؛ زیرا وظیفه تدوین اهداف صرفاً بر عهده اداره آموزش و پرورش منطقه است",
+                        "هدف‌گذاری نادرست است؛ زیرا مدیر نباید اهداف مدرسه را به معلمان و اولیا منتقل و اشاعه دهد"
+                    ],
+                    correct: 1
+                },
+                {
+                    id: 3,
+                    type: "mcq",
+                    bloom: "کاربستن",
+                    question: "مدیر مدرسه‌ای اجازه نمی‌دهد مراجعه بدون هماهنگی اولیا، پیج‌های بی‌موقع یا ارجاع کارهای اداری متفرقه، جریان تدریس معلمان را در زنگ‌های درسی متوقف کند. این اقدام مدیر مستقیماً مصداق کدام‌یک از وظایف ۱۰ گانه الگوی هالینجر است؟",
+                    options: [
+                        "پایش و ارزشیابی مستمر پیشرفت تحصیلی دانش‌آموزان",
+                        "ترویج توسعه و رشد حرفه‌ای معلمان در گروه‌های درسی",
+                        "حفاظت از زمان آموزش (Protecting Instructional Time)",
+                        "تبیین و اشاعه اهداف مصوب مدرسه برای کلیه ذی‌نفعان"
+                    ],
+                    correct: 2
+                },
+                {
+                    id: 4,
+                    type: "mcq",
+                    bloom: "تحلیل",
+                    question: "اجرای روش «نظارت بالینی (Clinical Supervision)» توسط مدیر مدرسه در کلاس درس، چه تفاوتی با بازرسی‌ها و ارزیابی‌های اداری سنتی دارد؟",
+                    options: [
+                        "نظارت بالینی برای مچ‌گیری و صدور حکم اداری است؛ اما بازرسی سنتی برای توانمندسازی انجام می‌شود",
+                        "نظارت بالینی به قصد حضور هدفمند، ارائه بازخورد سازنده و کمک به بهبود کیفیت تدریس معلم است",
+                        "نظارت بالینی صرفاً توسط بازرسان خارج از مدرسه انجام می‌شود؛ اما ارزیابی سنتی توسط خود معلم است",
+                        "نظارت بالینی بر بررسی دفاتر اندیکاتور تمرکز دارد؛ اما ارزیابی سنتی بر مشاهده مستقیم کلاس درس است"
+                    ],
+                    correct: 1
+                },
+                {
+                    id: 5,
+                    type: "mcq",
+                    bloom: "تحلیل",
+                    question: "مدیری با رفتار الگوی اخلاقی خود، اعتماد معلمان را جلب کرده و با ایجاد احساس هدفمندی، معلمان را تشویق می‌کند تا روش‌های سنتی تدریس را زیر سوال ببرند و روش‌های نوآورانه را بیازموده و رشد کنند. این مدیر از کدام مؤلفه‌های «رهبری تحول‌آفرین» استفاده کرده است؟",
+                    options: [
+                        "نفوذ آرمانی، انگیزش الهام‌بخش، ترغیب ذهنی و ملاحظات فردی",
+                        "رهبری تبادلی، مدیریت مبتنی بر استثنا، پاداش مشروط و نظارت اداری",
+                        "هرم معکوس مدیریت، همدلی، مانع‌زدایی و پشتیبانی ساختاری",
+                        "توزیع قدرت، تخصص‌محوری، تشکیل تیم‌های خودگردان و هماهنگی"
+                    ],
+                    correct: 0
+                },
+                {
+                    id: 6,
+                    type: "mcq",
+                    bloom: "کاربستن",
+                    question: "در مدرسه‌ای بزرگ و با برنامه‌های پیچیده آموزشی، مدیر مسئولیت رهبری گروه‌های درسی، هوشمندسازی و ارزشیابی را به معلمان باسابقه و متخصص واگذاری کرده و «اجتماعات یادگیری حرفه‌ای (PLCs)» تشکیل داده است. این اقدام بازتاب کدام سبک رهبری است؟",
+                    options: [
+                        "رهبری آمرانه متمرکز بر قدرت فردی مدیر",
+                        "رهبری توزیعی یا تقسیم‌شده (Distributed Leadership)",
+                        "رهبری تبادلی بر پایه پاداش‌ها و مجازات‌های مالی",
+                        "رهبری اداری متمرکز بر رعایت آئین‌نامه‌ها"
+                    ],
+                    correct: 1
+                },
+                {
+                    id: 7,
+                    type: "mcq",
+                    bloom: "ارزیابی",
+                    question: "اصلی‌ترین مفهوم در سبک «رهبری خدمتگزار (Servant Leadership)» که هرم سنتی مدیریت را در مدرسه معکوس می‌سازد، کدام است؟",
+                    options: [
+                        "قرار گرفتن مدیر در رأس هرم برای صدور دستورات مستقیم و کنترل کادر",
+                        "قرار گرفتن مدیر در قاعده هرم جهت مانع‌زدایی، پشتیبانی و خدمت به معلمان",
+                        "واگذاری کامل تمام مسئولیت‌های حقوقی و اداری مدرسه به دانش‌آموزان",
+                        "تمرکز بر ایجاد تغییرات بنیادی فقط از طریق اعمال اختیارات قانونی و رسمی"
+                    ],
+                    correct: 1
+                },
+                {
+                    id: 8,
+                    type: "mcq",
+                    bloom: "فهمیدن",
+                    question: "بر اساس الگوی هالینجر و مورفی، کدام وظیفه در بعد «ترویج جو و فرهنگ مثبت یادگیری» قرار می‌گیرد؟",
+                    options: [
+                        "تدوین اهداف مشخص مدرسه و انتقال آن‌ها به اولیا",
+                        "هماهنگی طولی و عرضی برنامه درسی در پایه‌ها",
+                        "حفظ حضور فعال و ملموس مدیر در راهروها و حیاط",
+                        "پایش و ارزشیابی پیشرفت تحصیلی با تحلیل نمرات"
+                    ],
+                    correct: 2
+                },
+                {
+                    id: 9,
+                    type: "mcq",
+                    bloom: "تحلیل",
+                    question: "زمانی که یک مدرسه دچار «روزمرگی اداری، افت شدید انگیزه معلمان و مقاومت در برابر تغییر» شده است، به‌کارگیری کدام سبک مدرن رهبری بیشترین اثربخشی را برای ایجاد جهش و تحول دارد؟",
+                    options: [
+                        "رهبری تحول‌آفرین (Transformational Leadership)",
+                        "رهبری بوروکراتیک مبتنی بر قوانین و آئین‌نامه‌ها",
+                        "مدیریت اداری سنتی مبتنی بر کنترل حضور و غیاب",
+                        "رهبری غیرفعال (Laissez-faire) و رها کردن امور"
+                    ],
+                    correct: 0
+                },
+                {
+                    id: 10,
+                    type: "mcq",
+                    bloom: "ارزیابی",
+                    question: "ترکیب هوشمندانه سه سبک مدرن رهبری توسط یک مدیر موفق در مدرسه، چگونه صورت می‌پذیرد؟",
+                    options: [
+                        "ایجاد انگیزه با تحول‌آفرین، تقسیم مسئولیت با توزیعی، و پشتیبانی با خدمتگزار",
+                        "جایگزینی کامل رهبری خدمتگزار به جای رهبری تحول‌آفرین و حذف رهبری توزیعی",
+                        "استفاده از رهبری تحول‌آفرین برای امور اداری و رهبری توزیعی برای کنترل انضباطی",
+                        "تمرکز انحصاری بر رهبری توزیعی بدون ایجاد چشم‌انداز یا پشتیبانی از معلمان"
+                    ],
+                    correct: 0
+                }
+            ]
+        };
+
+        let activeCourseTitles = {
+            "modiriyat-ch1": "درس مدیریت آموزشگاهی - جلسه اول (مفهوم و ابعاد مدیریت)",
+            "modiriyat-ch2": "درس مدیریت آموزشگاهی - جلسه دوم (مکاتب و دیدگاه‌های مدیریت)",
+            "modiriyat-ch3": "درس مدیریت آموزشگاهی - جلسه سوم (رهبری آموزشی و سبک‌های مدرن)"
+        };
+
+        let currentStudent = { name: '', id: '' };
+        let selectedCourseKey = '';
+        let currentQuestions = [];
+        let currentQIndex = 0;
+        let studentAnswers = [];
+        let timerSeconds = 45;
+        let timerInterval = null;
+        let perQuestionTime = parseInt(localStorage.getItem('admin_q_timer_m') || '45');
+
+        document.addEventListener('DOMContentLoaded', () => {
+            // Populate select dropdown strictly with the 3 course chapters
+            populateCourseSelect();
+
+            // Realtime sync from Firebase
+            listenToRealtimeQuestions();
+            listenToRealtimeSubmissions();
+        });
+
+        function populateCourseSelect() {
+            const selectEl = document.getElementById('exam-select');
+            selectEl.innerHTML = '';
+            
+            const keys = Object.keys(activeCourseTitles);
+            if (keys.length === 0) {
+                selectEl.innerHTML = '<option value="">هیچ مبحثی تعریف نشده است.</option>';
+                return;
+            }
+
+            keys.forEach(key => {
+                const opt = document.createElement('option');
+                opt.value = key;
+                opt.innerText = activeCourseTitles[key];
+                selectEl.appendChild(opt);
+            });
+        }
+
+        // Realtime Listener for Question Bank added by Teacher from Cloud Database
+        function listenToRealtimeQuestions() {
+            database.ref('questions_modiriyat').on('value', (snapshot) => {
+                const data = snapshot.val();
+                if (data) {
+                    Object.keys(data).forEach(key => {
+                        const item = data[key];
+                        if (item && item.title && item.questions) {
+                            activeCourseTitles[key] = item.title;
+                            activeQuestionBank[key] = item.questions;
+                        }
+                    });
+                }
+                populateCourseSelect();
+            }, (err) => {
+                populateCourseSelect();
+            });
+        }
+
+        // Standardize identifier to Persian / English digit normalized string
+        function normalizeIdentifier(raw) {
+            if (!raw) return '';
+            let str = String(raw).trim();
+            // Convert Persian digits to English digits
+            const persianDigits = [/۰/g, /۱/g, /۲/g, /۳/g, /۴/g, /۵/g, /۶/g, /۷/g, /۸/g, /۹/g];
+            for (let i = 0; i < 10; i++) {
+                str = str.replace(persianDigits[i], i);
+            }
+            return str.replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
+        }
+
+        function handleStartExam(e) {
+            e.preventDefault();
+            const name = document.getElementById('std-name').value.trim();
+            const rawId = document.getElementById('std-id').value.trim();
+            const courseKey = document.getElementById('exam-select').value;
+
+            if(!name || !rawId || !courseKey) {
+                alert('لطفاً تمام کادرها و مبحث آزمون را انتخاب کنید.');
+                return;
+            }
+
+            const cleanId = normalizeIdentifier(rawId);
+            if (!cleanId) {
+                alert('لطفاً شماره دانشجویی یا کد ملی معتبر وارد نمایید.');
+                return;
+            }
+
+            const startBtn = document.getElementById('start-btn');
+            startBtn.disabled = true;
+            startBtn.innerText = 'در حال بررسی سوابق...';
+
+            const attemptKey = cleanId + '_' + courseKey;
+
+            // 1. LocalStorage Check (Checks both raw and normalized)
+            if (localStorage.getItem('submitted_m_' + attemptKey) || localStorage.getItem('submitted_m_' + rawId + '_' + courseKey)) {
+                startBtn.disabled = false;
+                startBtn.innerText = 'شروع آزمون مدیریت';
+                alert('دانشجوی گرامی، با این کد ملی/شماره دانشجویی قبلاً در آزمون این مبحث شرکت شده است.');
+                return;
+            }
+
+            // 2. Timeout Fallback for slow connections (3 sec)
+            let isResolved = false;
+            const timeoutId = setTimeout(() => {
+                if (!isResolved) {
+                    isResolved = true;
+                    startExamDirectly(name, rawId, cleanId, courseKey);
+                }
+            }, 3000);
+
+            // 3. Realtime Database Check by Normalized submissionKey or studentId
+            database.ref('submissions_modiriyat').once('value', (snapshot) => {
+                if (isResolved) return;
+                isResolved = true;
+                clearTimeout(timeoutId);
+
+                startBtn.disabled = false;
+                startBtn.innerText = 'شروع آزمون مدیریت';
+
+                let alreadySubmitted = false;
+                if (snapshot.exists()) {
+                    const data = snapshot.val();
+                    Object.values(data).forEach(sub => {
+                        if (sub.courseKey === courseKey) {
+                            const subCleanId = normalizeIdentifier(sub.studentId || sub.normalizedId);
+                            if (subCleanId === cleanId || sub.submissionKey === attemptKey) {
+                                alreadySubmitted = true;
+                            }
+                        }
+                    });
+                }
+
+                if (alreadySubmitted) {
+                    alert('دانشجوی گرامی، با این کد ملی/شماره دانشجویی قبلاً در آزمون این مبحث شرکت شده است.');
+                } else {
+                    startExamDirectly(name, rawId, cleanId, courseKey);
+                }
+            }, (err) => {
+                if (!isResolved) {
+                    isResolved = true;
+                    clearTimeout(timeoutId);
+                    startExamDirectly(name, rawId, cleanId, courseKey);
+                }
+            });
+        }
+
+        function startExamDirectly(name, rawId, cleanId, courseKey) {
+            const startBtn = document.getElementById('start-btn');
+            if (startBtn) {
+                startBtn.disabled = false;
+                startBtn.innerText = 'شروع آزمون مدیریت';
+            }
+
+            currentStudent = { name, id: rawId, normalizedId: cleanId };
+            selectedCourseKey = courseKey;
+            currentQuestions = activeQuestionBank[courseKey] || [];
+
+            if (currentQuestions.length === 0) {
+                alert('سوالاتی برای این مبحث تعریف نشده است.');
+                return;
+            }
+
+            currentQIndex = 0;
+            studentAnswers = [];
+
+            document.getElementById('step-login').classList.add('hidden');
+            document.getElementById('step-quiz').classList.remove('hidden');
+            document.getElementById('quiz-course-tag').innerText = activeCourseTitles[courseKey] || courseKey;
+            document.getElementById('quiz-student-title').innerText = `دانشجو: ${name} (${rawId})`;
+
+            loadQuestion();
+        }
+
+        function loadQuestion() {
+            clearInterval(timerInterval);
+            if (currentQIndex >= currentQuestions.length) {
+                finishExam();
+                return;
+            }
+
+            const q = currentQuestions[currentQIndex];
+            document.getElementById('current-q-num').innerText = `${currentQIndex + 1} / ${currentQuestions.length}`;
+            document.getElementById('bloom-tag').innerText = `سطح شناختی بلوم: ${q.bloom || 'کاربرد'}`;
+            document.getElementById('question-text').innerText = q.question;
+
+            const optionsContainer = document.getElementById('options-container');
+            optionsContainer.innerHTML = '';
+
+            q.options.forEach((optText, optIdx) => {
+                const optElement = document.createElement('label');
+                optElement.className = "flex items-start gap-3 p-4 rounded-xl border border-slate-200 hover:border-indigo-400 hover:bg-indigo-50/50 cursor-pointer transition-all";
+                optElement.innerHTML = `
+                    <input type="radio" name="quiz-opt" value="${optIdx}" class="mt-1 text-indigo-600 focus:ring-indigo-500">
+                    <span class="text-xs sm:text-sm text-slate-800 leading-relaxed">${optText}</span>
+                `;
+                optionsContainer.appendChild(optElement);
+            });
+
+            timerSeconds = perQuestionTime;
+            updateTimerDisplay();
+            timerInterval = setInterval(() => {
+                timerSeconds--;
+                updateTimerDisplay();
+                if (timerSeconds <= 0) {
+                    clearInterval(timerInterval);
+                    submitAnswerAndNext();
+                }
+            }, 1000);
+        }
+
+        function updateTimerDisplay() {
+            const mins = Math.floor(timerSeconds / 60);
+            const secs = timerSeconds % 60;
+            document.getElementById('timer-display').innerText = 
+                `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+        }
+
+        function submitAnswerAndNext() {
+            clearInterval(timerInterval);
+            const selectedOpt = document.querySelector('input[name="quiz-opt"]:checked');
+            const chosenValue = selectedOpt ? parseInt(selectedOpt.value) : -1;
+            studentAnswers.push(chosenValue);
+
+            currentQIndex++;
+            loadQuestion();
+        }
+
+        function finishExam() {
+            let correctCount = 0;
+            currentQuestions.forEach((q, idx) => {
+                if (studentAnswers[idx] === q.correct) correctCount++;
+            });
+
+            const scorePercent = Math.round((correctCount / currentQuestions.length) * 100);
+
+            const submissionData = {
+                submissionKey: currentStudent.normalizedId + '_' + selectedCourseKey,
+                studentName: currentStudent.name,
+                studentId: currentStudent.id,
+                normalizedId: currentStudent.normalizedId,
+                courseKey: selectedCourseKey,
+                courseTitle: activeCourseTitles[selectedCourseKey] || selectedCourseKey,
+                score: scorePercent,
+                correctCount: correctCount,
+                totalQ: currentQuestions.length,
+                date: new Date().toLocaleString('fa-IR')
+            };
+
+            // Save locally immediately to prevent duplicate re-entry
+            localStorage.setItem('submitted_m_' + currentStudent.normalizedId + '_' + selectedCourseKey, 'true');
+            localStorage.setItem('submitted_m_' + currentStudent.id + '_' + selectedCourseKey, 'true');
+
+            // Store locally in array fallback
+            const localRecords = JSON.parse(localStorage.getItem('all_local_submissions_m') || '[]');
+            localRecords.push(submissionData);
+            localStorage.setItem('all_local_submissions_m', JSON.stringify(localRecords));
+
+            // Push to Realtime Database
+            database.ref('submissions_modiriyat').push(submissionData, (error) => {
+                if (error) {
+                    console.error("Firebase push error: ", error);
+                }
+            });
+
+            document.getElementById('step-quiz').classList.add('hidden');
+            document.getElementById('step-result').classList.remove('hidden');
+            document.getElementById('final-score').innerText = `${scorePercent}٪`;
+            document.getElementById('final-details').innerText = `پاسخ صحیح: ${correctCount} از ${currentQuestions.length}`;
+        }
+
+        function listenToRealtimeSubmissions() {
+            database.ref('submissions_modiriyat').on('value', (snapshot) => {
+                const data = snapshot.val();
+                const tbody = document.getElementById('admin-submissions-tbody');
+                tbody.innerHTML = '';
+
+                let submissionsArray = [];
+
+                if (data) {
+                    submissionsArray = Object.values(data);
+                }
+
+                // Merge with any offline local submissions if not yet synced
+                const localRecords = JSON.parse(localStorage.getItem('all_local_submissions_m') || '[]');
+                localRecords.forEach(localItem => {
+                    const exists = submissionsArray.some(s => 
+                        (s.normalizedId === localItem.normalizedId || s.studentId === localItem.studentId) && 
+                        s.courseKey === localItem.courseKey
+                    );
+                    if (!exists) {
+                        submissionsArray.push(localItem);
+                    }
+                });
+
+                if (submissionsArray.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="5" class="p-4 text-center text-slate-400">هیچ پاسخی هنوز ثبت نشده است.</td></tr>';
+                    document.getElementById('total-students-count').innerText = '۰ نفر';
+                    return;
+                }
+
+                document.getElementById('total-students-count').innerText = `${submissionsArray.length} نفر`;
+
+                submissionsArray.forEach(sub => {
+                    const tr = document.createElement('tr');
+                    tr.className = "hover:bg-slate-50 transition-all";
+                    tr.innerHTML = `
+                        <td class="p-2.5 font-bold text-slate-800">${sub.studentName}</td>
+                        <td class="p-2.5 font-mono">${sub.studentId}</td>
+                        <td class="p-2.5 text-slate-600">${sub.courseKey}</td>
+                        <td class="p-2.5"><span class="bg-indigo-100 text-indigo-800 font-bold px-2 py-0.5 rounded">${sub.score}٪</span></td>
+                        <td class="p-2.5 text-slate-500">${sub.date}</td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            }, (err) => {
+                // If offline / restricted, read from localStorage
+                const localRecords = JSON.parse(localStorage.getItem('all_local_submissions_m') || '[]');
+                const tbody = document.getElementById('admin-submissions-tbody');
+                tbody.innerHTML = '';
+                document.getElementById('total-students-count').innerText = `${localRecords.length} نفر`;
+                localRecords.forEach(sub => {
+                    const tr = document.createElement('tr');
+                    tr.className = "hover:bg-slate-50 transition-all";
+                    tr.innerHTML = `
+                        <td class="p-2.5 font-bold text-slate-800">${sub.studentName}</td>
+                        <td class="p-2.5 font-mono">${sub.studentId}</td>
+                        <td class="p-2.5 text-slate-600">${sub.courseKey}</td>
+                        <td class="p-2.5"><span class="bg-indigo-100 text-indigo-800 font-bold px-2 py-0.5 rounded">${sub.score}٪</span></td>
+                        <td class="p-2.5 text-slate-500">${sub.date}</td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            });
+        }
+
+        function saveNewQuestionBankToFirebase() {
+            const courseKey = document.getElementById('new-course-key').value.trim();
+            const courseTitle = document.getElementById('new-course-title').value.trim();
+            const jsonText = document.getElementById('new-questions-json').value.trim();
+
+            if (!courseKey || !courseTitle || !jsonText) {
+                alert('لطفاً تمامی کادرها را پر کنید.');
+                return;
+            }
+
+            try {
+                const parsedQuestions = JSON.parse(jsonText);
+                if (!Array.isArray(parsedQuestions)) {
+                    alert('فرمت JSON باید یک آرایه شامل لیست سوالات باشد.');
+                    return;
+                }
+
+                // Save Question Bank to Firebase
+                database.ref('questions_modiriyat/' + courseKey).set({
+                    title: courseTitle,
+                    questions: parsedQuestions,
+                    updatedAt: new Date().toISOString()
+                }, (error) => {
+                    if (error) {
+                        alert('خطا در ذخیره‌سازی: ' + error.message);
+                    } else {
+                        alert(`مبحث «${courseTitle}» با موفقیت در پایگاه‌داده ابری ذخیره و منتشر شد.`);
+                        document.getElementById('new-course-key').value = '';
+                        document.getElementById('new-course-title').value = '';
+                        document.getElementById('new-questions-json').value = '';
+                    }
+                });
+
+            } catch (err) {
+                alert('کد JSON معتبر نیست! لطفاً ساختار کپی‌شده را بررسی کنید.\nخطا: ' + err.message);
+            }
+        }
+
+        function toggleAdminModal() {
+            document.getElementById('admin-modal').classList.toggle('hidden');
+        }
+
+        function verifyAdminPass() {
+            const pass = document.getElementById('admin-pass').value;
+            if (pass === '1403') {
+                document.getElementById('admin-login-form').classList.add('hidden');
+                document.getElementById('admin-panel').classList.remove('hidden');
+            } else {
+                alert('رمز عبور اشتباه است.');
+            }
+        }
+
+        function switchAdminSubTab(tab) {
+            const qTab = document.getElementById('admin-subtab-questions');
+            const rTab = document.getElementById('admin-subtab-results');
+            const qBtn = document.getElementById('admin-tab-btn-questions');
+            const rBtn = document.getElementById('admin-tab-btn-results');
+
+            if (tab === 'questions') {
+                qTab.classList.remove('hidden');
+                rTab.classList.add('hidden');
+                qBtn.className = "px-4 py-2 text-xs font-bold border-b-2 border-indigo-600 text-indigo-600";
+                rBtn.className = "px-4 py-2 text-xs font-bold border-b-2 border-transparent text-slate-500 hover:text-slate-800";
+            } else {
+                qTab.classList.add('hidden');
+                rTab.classList.remove('hidden');
+                rBtn.className = "px-4 py-2 text-xs font-bold border-b-2 border-indigo-600 text-indigo-600";
+                qBtn.className = "px-4 py-2 text-xs font-bold border-b-2 border-transparent text-slate-500 hover:text-slate-800";
+            }
+        }
+
+        function saveTimerSetting() {
+            const val = parseInt(document.getElementById('q-timer-set').value);
+            if (val >= 10 && val <= 300) {
+                perQuestionTime = val;
+                localStorage.setItem('admin_q_timer_m', val.toString());
+                alert('زمان پاسخ‌گویی با موفقیت به‌روزرسانی شد.');
+            }
+        }
+
+        function exportCSV() {
+            database.ref('submissions_modiriyat').once('value', (snapshot) => {
+                const data = snapshot.val();
+                if (!data) {
+                    alert('داده‌ای موجود نیست.');
+                    return;
+                }
+
+                let csvContent = "\uFEFFنام دانشجو,شماره دانشجویی,کد مبحث,نمره (درصد),تعداد صحیح,تاریخ\n";
+                Object.values(data).forEach(s => {
+                    csvContent += `"${s.studentName}","${s.studentId}","${s.courseKey}",${s.score},${s.correctCount},"${s.date}"\n`;
+                });
+
+                const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement("a");
+                link.setAttribute("href", url);
+                link.setAttribute("download", "گزارش_آزمون_مدیریت_آموزشگاهی.csv");
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            });
+        }
+    </script>
+</body>
+</html>
